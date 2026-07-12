@@ -1,0 +1,22 @@
+from fastapi import FastAPI
+from app.api.routes import empresas
+from app.api.routes import clientes
+from app.api.routes import servicos
+
+app = FastAPI(
+    title="AFP Agendamento API"
+)
+
+
+app.include_router(empresas.router)
+app.include_router(clientes.router)
+app.include_router(servicos.router)
+
+@app.get("/")
+def home():
+    return {
+        "status": "API funcionando",
+        "projeto": "AFP Agendamento"
+    }
+
+
