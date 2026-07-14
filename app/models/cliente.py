@@ -1,4 +1,6 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy.orm import relationship
+
 from app.database.database import Base
 
 
@@ -16,3 +18,7 @@ class Cliente(Base):
         nullable=False
     )
 
+    agendamentos = relationship(
+        "Agendamento",
+        back_populates="cliente"
+    )
