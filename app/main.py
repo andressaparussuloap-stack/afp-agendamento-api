@@ -4,9 +4,20 @@ from app.api.routes import clientes
 from app.api.routes import servicos
 from app.api.routes import agendamentos
 from app.api.routes import auth
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
     title="AFP Agendamento API"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
