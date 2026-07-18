@@ -55,6 +55,35 @@ def buscar_agendamento(
 
     return agendamento
 
+@router.delete("/{id}")
+def excluir_agendamento(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+
+    agendamento = (
+        db.query(Agendamento)
+        .filter(
+            Agendamento.id == id,
+            Agendamento.empresa_id == current_user.empresa_id,
+        )
+        .first()
+    )
+
+    if not agendamento:
+        raise HTTPException(
+            status_code=404,
+            detail="Agendamento não encontrado."
+        )
+
+    db.delete(agendamento)
+    db.commit()
+
+    return {
+        "message": "Agendamento excluído com sucesso."
+    }
+
 
 @router.post("/", response_model=AgendamentoResponse)
 def criar_agendamento(
@@ -63,27 +92,11 @@ def criar_agendamento(
     current_user=Depends(get_current_user),
 ):
 
-
-
-    # Verifica se a empresa existe
-    empresa = db.query(Empresa).filter(
-        Empresa.id == agendamento.empresa_id,
-        Empresa.id == current_user.empresa_id,
-    ).first()
-
-
-    if not empresa:
-        raise HTTPException(
-            status_code=404,
-            detail="Empresa não encontrada."
-        )
-
-    # Verifica se o cliente existe (somente da empresa do usuário)
+    # Verifica se o cliente pertence à empresa logada
     cliente = db.query(Cliente).filter(
         Cliente.id == agendamento.cliente_id,
         Cliente.empresa_id == current_user.empresa_id,
     ).first()
-
 
     if not cliente:
         raise HTTPException(
@@ -91,12 +104,12 @@ def criar_agendamento(
             detail="Cliente não encontrado."
         )
 
-    # Verifica se o serviço existe (somente da empresa do usuário)
+
+    # Verifica se o serviço pertence à empresa logada
     servico = db.query(Servico).filter(
         Servico.id == agendamento.servico_id,
         Servico.empresa_id == current_user.empresa_id,
     ).first()
-
 
     if not servico:
         raise HTTPException(
@@ -104,7 +117,8 @@ def criar_agendamento(
             detail="Serviço não encontrado."
         )
 
-    # Verifica conflito de horário (somente da empresa do usuário)
+
+    # Verifica conflito de horário
     agendamento_existente = (
         db.query(Agendamento)
         .filter(
@@ -122,14 +136,18 @@ def criar_agendamento(
             detail="Já existe um agendamento para este horário."
         )
 
-    # Cria o agendamento
-    if agendamento.empresa_id != current_user.empresa_id:
-        raise HTTPException(
-            status_code=403,
-            detail="Acesso negado: agendamento fora da sua empresa.",
-        )
 
-    novo = Agendamento(**agendamento.model_dump())
+    # Cria o agendamento
+    novo = Agendamento(
+        empresa_id=current_user.empresa_id,
+        cliente_id=agendamento.cliente_id,
+        servico_id=agendamento.servico_id,
+        data=agendamento.data,
+        horario=agendamento.horario,
+        observacao=agendamento.observacao,
+        status="agendado"
+    )
+
 
     db.add(novo)
 

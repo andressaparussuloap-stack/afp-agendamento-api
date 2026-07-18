@@ -5,7 +5,7 @@ class ServicoCreate(BaseModel):
     nome: str
     descricao: str | None = None
     valor: float
-    empresa_id: int
+  
 
 
 class ServicoResponse(BaseModel):

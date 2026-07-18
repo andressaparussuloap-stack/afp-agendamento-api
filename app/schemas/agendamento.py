@@ -4,7 +4,6 @@ from pydantic import BaseModel
 
 
 class AgendamentoCreate(BaseModel):
-    empresa_id: int
     cliente_id: int
     servico_id: int
     data: date
@@ -15,6 +14,7 @@ class AgendamentoCreate(BaseModel):
 class AgendamentoResponse(AgendamentoCreate):
     id: int
     status: str
+    empresa_id: int
 
     class Config:
         from_attributes = True

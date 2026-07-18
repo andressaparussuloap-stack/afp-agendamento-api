@@ -25,6 +25,7 @@ def criar_servico(
         nome=servico.nome,
         descricao=servico.descricao,
         valor=servico.valor,
+        duracao=servico.du4racao,
         empresa_id=current_user.empresa_id
     )
 
@@ -47,3 +48,23 @@ def listar_servicos(
     ).all()
 
 
+from fastapi import HTTPException
+
+@router.delete("/{servico_id}")
+def excluir_servico(
+    servico_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    servico = db.query(Servico).filter(
+        Servico.id == servico_id,
+        Servico.empresa_id == current_user.empresa_id
+    ).first()
+
+    if not servico:
+        raise HTTPException(status_code=404, detail="Serviço não encontrado")
+
+    db.delete(servico)
+    db.commit()
+
+    return {"message": "Serviço excluído com sucesso"}

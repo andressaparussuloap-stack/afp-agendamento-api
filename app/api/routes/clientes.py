@@ -46,3 +46,22 @@ def listar_clientes(
         Cliente.empresa_id == current_user.empresa_id
     ).all()
 
+@router.delete("/{cliente_id}")
+def excluir_cliente(
+    cliente_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    cliente = db.query(Cliente).filter(
+        Cliente.id == cliente_id,
+        Cliente.empresa_id == current_user.empresa_id
+    ).first()
+
+    if not cliente:
+        return {"erro": "Cliente não encontrado"}
+
+    db.delete(cliente)
+    db.commit()
+
+    return {"mensagem": "Cliente excluído com sucesso"}
+
