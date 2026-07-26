@@ -5,26 +5,75 @@ from app.database.database import Base
 
 
 class Agendamento(Base):
+
     __tablename__ = "agendamentos"
 
-    id = Column(Integer, primary_key=True, index=True)
 
-    empresa_id = Column(Integer, ForeignKey("empresas.id"))
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
 
-    cliente_id = Column(Integer, ForeignKey("clientes.id"))
 
-    servico_id = Column(Integer, ForeignKey("servicos.id"))
+    empresa_id = Column(
+        Integer,
+        ForeignKey("empresas.id"),
+        nullable=False
+    )
 
-    data = Column(Date)
 
-    horario = Column(Time)
+    cliente_id = Column(
+        Integer,
+        ForeignKey("clientes.id"),
+        nullable=False
+    )
 
-    status = Column(String, default="Agendado")
 
-    observacao = Column(String)
+    servico_id = Column(
+        Integer,
+        ForeignKey("servicos.id"),
+        nullable=False
+    )
 
-    empresa = relationship("Empresa", back_populates="agendamentos")
 
-    cliente = relationship("Cliente", back_populates="agendamentos")
+    data = Column(
+        Date,
+        nullable=False
+    )
 
-    servico = relationship("Servico", back_populates="agendamentos")
+
+    horario = Column(
+        Time,
+        nullable=False
+    )
+
+
+    status = Column(
+        String(30),
+        default="Agendado"
+    )
+
+
+    observacao = Column(
+        String(255),
+        nullable=True
+    )
+
+
+    empresa = relationship(
+        "Empresa",
+        back_populates="agendamentos"
+    )
+
+
+    cliente = relationship(
+        "Cliente",
+        back_populates="agendamentos"
+    )
+
+
+    servico = relationship(
+        "Servico",
+        back_populates="agendamentos"
+    )

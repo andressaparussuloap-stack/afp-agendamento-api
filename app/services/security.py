@@ -20,8 +20,25 @@ def verify_password(password: str, password_hash: str) -> bool:
     return pwd_context.verify(password, password_hash)
 
 
-def create_access_token(subject: str) -> str:
-    expire = datetime.utcnow() + timedelta(minutes=JWT_EXP_MINUTES)
-    to_encode = {"sub": subject, "exp": expire}
-    return jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)
+def create_access_token(
+    user_id: str,
+    tipo: str,
+    empresa_id: int | None = None
+) -> str:
 
+    expire = datetime.utcnow() + timedelta(
+        minutes=JWT_EXP_MINUTES
+    )
+
+    to_encode = {
+        "sub": user_id,
+        "tipo": tipo,
+        "empresa_id": empresa_id,
+        "exp": expire
+    }
+
+    return jwt.encode(
+        to_encode,
+        JWT_SECRET,
+        algorithm=JWT_ALGORITHM
+    )

@@ -5,18 +5,52 @@ from app.database.database import Base
 
 
 class Usuario(Base):
+
     __tablename__ = "usuarios"
 
 
-    id = Column(Integer, primary_key=True, index=True)
-    nome = Column(String(150), nullable=False)
-    email = Column(String(150), unique=True, index=True, nullable=False)
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
 
-    # senha criptografada (hash)
-    senha_hash = Column(String(255), nullable=False)
 
-    empresa_id = Column(Integer, ForeignKey("empresas.id"), nullable=False)
+    nome = Column(
+        String(150),
+        nullable=False
+    )
 
-    empresa = relationship("Empresa", back_populates="usuarios")
 
+    email = Column(
+        String(150),
+        unique=True,
+        index=True,
+        nullable=False
+    )
+
+
+    senha_hash = Column(
+        String(255),
+        nullable=False
+    )
+
+
+    empresa_id = Column(
+        Integer,
+        ForeignKey("empresas.id"),
+        nullable=True
+    )
+
+
+    empresa = relationship(
+        "Empresa",
+        back_populates="usuarios"
+    )
+
+
+    tipo = Column(
+        String(20),
+        default="empresa"
+    )
 

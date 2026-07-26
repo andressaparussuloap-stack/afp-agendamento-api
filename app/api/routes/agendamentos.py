@@ -8,8 +8,9 @@ from sqlalchemy.orm import Session
 
 from app.database.database import get_db
 from app.models.agendamento import Agendamento
+from app.models.usuario import Usuario
 from app.schemas.agendamento import AgendamentoCreate, AgendamentoResponse
-from app.api.core.deps import get_current_user
+from app.api.core.deps import get_empresa_user
 
 
 router = APIRouter(
@@ -18,58 +19,55 @@ router = APIRouter(
 )
 
 
+def _query_base(db: Session, current_user: Usuario):
+    """
+    Admin enxerga todos os agendamentos.
+    Usuário do tipo 'empresa' só enxerga os da própria empresa.
+    """
+    query = db.query(Agendamento)
+
+    if current_user.tipo != "admin":
+        query = query.filter(Agendamento.empresa_id == current_user.empresa_id)
+
+    return query
+
+
 @router.get("/", response_model=list[AgendamentoResponse])
 def listar_agendamentos(
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user: Usuario = Depends(get_empresa_user),
 ):
-    return db.query(Agendamento).filter(
-        Agendamento.empresa_id == current_user.empresa_id
-    ).all()
-
+    return _query_base(db, current_user).all()
 
 
 @router.get("/{id}", response_model=AgendamentoResponse)
 def buscar_agendamento(
     id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user: Usuario = Depends(get_empresa_user),
 ):
-
-
-    agendamento = (
-        db.query(Agendamento)
-        .filter(
-            Agendamento.id == id,
-            Agendamento.empresa_id == current_user.empresa_id,
-        )
-        .first()
-    )
-
+    agendamento = _query_base(db, current_user).filter(
+        Agendamento.id == id
+    ).first()
 
     if not agendamento:
-         raise HTTPException(
+        raise HTTPException(
             status_code=404,
             detail="Agendamento não encontrado."
         )
 
     return agendamento
 
+
 @router.delete("/{id}")
 def excluir_agendamento(
     id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user: Usuario = Depends(get_empresa_user),
 ):
-
-    agendamento = (
-        db.query(Agendamento)
-        .filter(
-            Agendamento.id == id,
-            Agendamento.empresa_id == current_user.empresa_id,
-        )
-        .first()
-    )
+    agendamento = _query_base(db, current_user).filter(
+        Agendamento.id == id
+    ).first()
 
     if not agendamento:
         raise HTTPException(
@@ -89,13 +87,26 @@ def excluir_agendamento(
 def criar_agendamento(
     agendamento: AgendamentoCreate,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user: Usuario = Depends(get_empresa_user),
 ):
+    # Admin criando agendamento precisa informar empresa_id no schema
+    # (ver observação abaixo sobre AgendamentoCreate)
+    empresa_id = (
+        agendamento.empresa_id
+        if current_user.tipo == "admin" and getattr(agendamento, "empresa_id", None)
+        else current_user.empresa_id
+    )
 
-    # Verifica se o cliente pertence à empresa logada
+    if empresa_id is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Nenhuma empresa vinculada para este agendamento."
+        )
+
+    # Verifica se o cliente pertence à empresa do agendamento
     cliente = db.query(Cliente).filter(
         Cliente.id == agendamento.cliente_id,
-        Cliente.empresa_id == current_user.empresa_id,
+        Cliente.empresa_id == empresa_id,
     ).first()
 
     if not cliente:
@@ -104,11 +115,10 @@ def criar_agendamento(
             detail="Cliente não encontrado."
         )
 
-
-    # Verifica se o serviço pertence à empresa logada
+    # Verifica se o serviço pertence à empresa do agendamento
     servico = db.query(Servico).filter(
         Servico.id == agendamento.servico_id,
-        Servico.empresa_id == current_user.empresa_id,
+        Servico.empresa_id == empresa_id,
     ).first()
 
     if not servico:
@@ -117,18 +127,16 @@ def criar_agendamento(
             detail="Serviço não encontrado."
         )
 
-
     # Verifica conflito de horário
     agendamento_existente = (
         db.query(Agendamento)
         .filter(
-            Agendamento.empresa_id == current_user.empresa_id,
+            Agendamento.empresa_id == empresa_id,
             Agendamento.data == agendamento.data,
             Agendamento.horario == agendamento.horario,
         )
         .first()
     )
-
 
     if agendamento_existente:
         raise HTTPException(
@@ -136,10 +144,8 @@ def criar_agendamento(
             detail="Já existe um agendamento para este horário."
         )
 
-
-    # Cria o agendamento
     novo = Agendamento(
-        empresa_id=current_user.empresa_id,
+        empresa_id=empresa_id,
         cliente_id=agendamento.cliente_id,
         servico_id=agendamento.servico_id,
         data=agendamento.data,
@@ -148,9 +154,7 @@ def criar_agendamento(
         status="agendado"
     )
 
-
     db.add(novo)
-
     db.commit()
     db.refresh(novo)
 
